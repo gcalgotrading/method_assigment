@@ -1,7 +1,6 @@
 # method_assigment
 
-Main functionality is consisted in the payout_dashboard/views.py and payout_dashboard/models.py functions
-dashboard.html displays the webpage
+Main functionality is consisted in the payout_dashboard/views.py and payout_dashboard/models.py functions, dashboard.html displays the webpage
 
 How to run the website:
 ```
