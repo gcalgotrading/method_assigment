@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+
+    {% if process_payments %}
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+            
+          <h2>Payments to Review:</h2>
+          {% for payment in payments %}
+            Payment ID: {{ payment.id }} Amount: {{ payment.amount }}<br>
+            <input type="hidden" name="payment_amounts[]" value="{{ payment.amount }}">
+            <input type="hidden" name="payment_sources[]" value="{{ payment.source }}">
+            <input type="hidden" name="payment_destinations[]" value="{{ payment.destination }}">
+            <input type="hidden" name="payment_descriptions[]" value="{{ payment.description }}">
+          {% endfor %}
+          
+          <button type="submit" name="authorize">Authorize All Payments</button>
+          <button type="submit" name="decline">Decline All Payments</button>
+    </form>
+    {% endif %}
+
+
+    {% if entities %}
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="card-title"> Entities</h2>
+                        <pre>{{ entities }}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+   
+
+    <div class="container-fluid">
+        <header class="py-3 text-center">
+            <h1>Dashboard</h1>
+        </header>
+
+        <div class="row">
+            <aside class="col-md-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Upload XML</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">CSV Data</a>
+                    </li>
+                </ul>
+            </aside>
+
+            <main class="col-md-9">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="card-title">Upload XML File</h2>
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="xmlFile">Select XML File:</label>
+                                <input type="file" name="xml_file" id="xmlFile" class="form-control-file">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Upload</button>
+                        </form>
+                    </div>
+                </div>
+
+                {% if csv_data %}
+                    <div class="card mt-4">
+                        <div class="card-body">
+                            <h2 class="card-title">CSV Data</h2>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            {% for header in csv_data.0 %}
+                                                <th>{{ header }}</th>
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in csv_data.1 %}
+                                            <tr>
+                                                {% for value in row %}
+                                                    <td>{{ value }}</td>
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </main>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
