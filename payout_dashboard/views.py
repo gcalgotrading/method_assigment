@@ -82,7 +82,10 @@ def dashboard_view(request):
             {
                 "entities": existing_entities,
                 "process_payments": True,
-                "payments": payment_list
+                "payments": payment_list,
+                'accounts': Account.objects.all(),
+                'entities': Entity.objects.all(),
+                'payments_objects': Payment.objects.all()
             },
         )
     elif request.method == "POST" and request.POST.getlist("payment_amounts[]"):
@@ -113,6 +116,9 @@ def dashboard_view(request):
             "payout_dashboard/dashboard.html",
             {
                 "payments_authorized": True,
+                'accounts': Account.objects.all(),
+                'entities': Entity.objects.all(),
+                'payments_objects': Payment.objects.all()
             },
         )
     return render(request, "payout_dashboard/dashboard.html")
