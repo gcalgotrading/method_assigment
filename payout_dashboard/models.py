@@ -6,7 +6,7 @@ class Entity(models.Model):
         ('corporation', 'Corporation'),
     )
 
-    entity_id = models.CharField(max_length=100)
+    entity_id = models.CharField(max_length=100, null=True)
     type = models.CharField(max_length=100, choices=ENTITY_TYPES)
     first_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100, blank=True, null=True)

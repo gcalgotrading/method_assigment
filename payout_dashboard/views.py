@@ -21,14 +21,16 @@ def dashboard_view(request):
         rows = xml_dict["root"]["row"]
 
         entities_list = []
+        dunkin_ids_list = []
         for row in rows:
             individual_data, corporate_data, employee_dunkin_id, payor_dunkin_id = process_row(row)
             entities_list.append(individual_data)
             entities_list.append(corporate_data)
+            dunkin_ids_list.append((employee_dunkin_id, payor_dunkin_id))
 
         created_entities_response = []
 
-        for entity_data in entities_list:
+        for entity_data, dunkin_ids in zip(entities_list, dunkin_ids_list):
             if entity_data['type'] == 'individual':
                 first_name = entity_data['individual']['first_name']
                 last_name = entity_data['individual']['last_name']
@@ -41,11 +43,9 @@ def dashboard_view(request):
                 response = method.entities.create(entity_data)
                 created_entities_response.append(response)
                 if entity_data['type'] == 'individual':
-                    entity = Entity(type='individual', entity_id=created_entities_response[-1]['id'], first_name=entity_data['individual']['first_name'], last_name=entity_data['individual']['last_name'])
-                    entity.dunkin_id = employee_dunkin_id
+                    entity = Entity(type='individual', entity_id=created_entities_response[-1]['id'], first_name=entity_data['individual']['first_name'], last_name=entity_data['individual']['last_name'], dunkin_id=dunkin_ids[0])
                 elif entity_data['type'] == 'c_corporation':
-                    entity = Entity(type='c_corporation', entity_id=created_entities_response[-1]['id'], ein=entity_data['corporation']['ein'], corporation_name=entity_data['corporation']['name'])
-                    entity.dunkin_id = payor_dunkin_id
+                    entity = Entity(type='c_corporation', entity_id=created_entities_response[-1]['id'], ein=entity_data['corporation']['ein'], corporation_name=entity_data['corporation']['name'], dunkin_id=dunkin_ids[1])
                 entity.save()
 
         existing_entities = json.dumps(list(Entity.objects.all().values()), indent=4)
@@ -67,7 +67,7 @@ def dashboard_view(request):
                 account = Account(
                     account_id=response['id'],
                     holder_id=response['holder_id'],   
-                    entity=existing_entity
+                    entity=Entity.objects.get(entity_id=entity_data['id'])
                 )
                 account.save()
                 accounts.append(account)
@@ -90,24 +90,23 @@ def dashboard_view(request):
         payment_sources = request.POST.getlist("payment_sources[]")
         payment_destinations = request.POST.getlist("payment_destinations[]")
         payment_descriptions = request.POST.getlist("payment_descriptions[]")
-        
         for i in range(len(payment_amounts)):
             payment = {
-                "amount": float(payment_amounts[i][1:]),
+                "amount": float(payment_amounts[i][1:]) * 100,
                 "source": payment_sources[i],
                 "destination": payment_destinations[i],
                 "description": payment_descriptions[i],
             }
-
             try:
                 response = method.payments.create(payment)
             except MethodInvalidRequestError as e:
                 payment = Payment(
-                    amount= payment_amounts[i],
+                    amount= float(payment_amounts[i][1:]) * 100,
                     source= payment_sources[i],
                     destination= payment_destinations[i],
                     description= payment_descriptions[i],
                 )
+                payment.save()
 
         return render(
             request,
@@ -120,14 +119,12 @@ def dashboard_view(request):
 
 def process_payment(row):
     amount = row["Amount"]
-    destination_dunkin_id = row['Employee'].get("DunkinID") 
-    source_dunkin_id = row['Payor'].get("DunkinID") 
-
+    destination_dunkin_id = row['Employee'].get("DunkinId") 
+    source_dunkin_id = row['Payor'].get("DunkinId") 
     destination_account = Account.objects.filter(entity__dunkin_id=destination_dunkin_id).first()
     source_account = Account.objects.filter(entity__dunkin_id=source_dunkin_id).first()
-
-    source_account_id = destination_account.account_id 
-    destination_account_id = source_account.account_id 
+    source_account_id = getattr(source_account, 'account_id', 'default_source_account_id')
+    destination_account_id = getattr(destination_account, 'account_id', 'default_destination_account_id') 
     description = 'Loan Pmt'
     payment_data = {
         'amount': amount,
@@ -140,8 +137,8 @@ def process_payment(row):
 def process_row(row):
     employee_data = row["Employee"]
     payor_data = row["Payor"]
-    employee_dunkin_id = employee_data.get("DunkinID")
-    payor_dunkin_id = payor_data.get("DunkinID")
+    employee_dunkin_id = employee_data.get("DunkinId")
+    payor_dunkin_id = payor_data.get("DunkinId")
 
     individual_data = {
         "type": "individual",
